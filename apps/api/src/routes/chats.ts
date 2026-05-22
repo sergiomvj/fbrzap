@@ -118,9 +118,20 @@ export async function chatRoutes(app: FastifyInstance): Promise<void> {
 
       if (chat.type === "dm_agent" && chat.agent_id) {
         const requestId = randomUUID();
+        
+        const rawHistory = await listMessagesForChat(params.chatId, context.userId);
+        const history = (rawHistory || [])
+          .filter(m => m.id !== userMessage.id)
+          .slice(-10)
+          .filter(m => m.direction === "inbound_user" || m.direction === "outbound_agent")
+          .map(m => ({
+            role: m.direction === "inbound_user" ? "user" : "assistant",
+            content: m.content
+          }));
+
         const openClawReply = await sendAgentMessage(chat.agent_id, {
           message: body.content,
-          history: [],
+          history: history,
           channel_id: `fbrzap:${params.chatId}`,
           request_id: requestId,
           metadata: {
