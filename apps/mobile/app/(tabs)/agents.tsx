@@ -49,8 +49,8 @@ export default function AgentsScreen(): JSX.Element {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          // Temporário: Usando um UUID fixo para simular o usuário logado
-          "x-user-id": "00000000-0000-0000-0000-000000000001"
+          // Temporário: Usando um UUID fixo VÁLIDO do Supabase
+          "x-user-id": "595f98a5-b525-4a52-870b-14f036e6c71b"
         },
         body: JSON.stringify({
           type: "dm_agent",
