@@ -33,10 +33,10 @@ export default function TabsLayout(): JSX.Element {
         }}
       />
       <Tabs.Screen
-        name="lists"
+        name="groups"
         options={{
-          title: "Listas",
-          tabBarIcon: ({ color, size }) => <Ionicons name="paper-plane-outline" color={color} size={size} />
+          title: "Grupos",
+          tabBarIcon: ({ color, size }) => <Ionicons name="people-outline" color={color} size={size} />
         }}
       />
       <Tabs.Screen

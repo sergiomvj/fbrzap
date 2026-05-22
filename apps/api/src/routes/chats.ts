@@ -7,7 +7,13 @@ import {
   createUserMessage,
   getChatForUser,
   listChatsForUser,
-  listMessagesForChat
+  listMessagesForChat,
+  updateChatTitle,
+  deleteChat,
+  addChatMember,
+  removeChatMember,
+  addChatAgent,
+  removeChatAgent
 } from "../lib/fbrzap-repository.js";
 import { getRequestContext } from "../lib/request-context.js";
 import { sendAgentMessage } from "../lib/openclaw.js";
@@ -46,7 +52,8 @@ export async function chatRoutes(app: FastifyInstance): Promise<void> {
         z.object({
           type: z.literal("group"),
           title: z.string().min(2),
-          member_ids: z.array(z.string().uuid()).default([])
+          member_ids: z.array(z.string().uuid()).default([]),
+          agent_ids: z.array(z.string()).default([])
         })
       ]).parse(request.body);
 
@@ -63,7 +70,8 @@ export async function chatRoutes(app: FastifyInstance): Promise<void> {
               createdBy: context.userId,
               orgSlug: context.orgSlug,
               title: body.title,
-              memberIds: body.member_ids
+              memberIds: body.member_ids,
+              agentIds: body.agent_ids
             });
 
       return {
@@ -212,5 +220,112 @@ export async function chatRoutes(app: FastifyInstance): Promise<void> {
       request_id: requestId,
       reply
     };
+  });
+
+  // ROTAS DE GERENCIAMENTO DE GRUPO/CHAT
+
+  app.patch("/v1/chats/:chatId", async (request, reply) => {
+    try {
+      const context = getRequestContext(request);
+      const params = z.object({ chatId: z.string().uuid().or(z.string().min(1)) }).parse(request.params);
+      const body = z.object({ title: z.string().min(1) }).parse(request.body);
+
+      const chat = await getChatForUser(params.chatId, context.userId);
+      if (!chat) return reply.status(404).send({ ok: false, error: "chat_not_found" });
+
+      const updated = await updateChatTitle(params.chatId, body.title);
+      return { ok: true, chat: updated };
+    } catch (error) {
+      request.log.error(error);
+      return reply.status(400).send({ ok: false, error: "failed_to_update_chat" });
+    }
+  });
+
+  app.delete("/v1/chats/:chatId", async (request, reply) => {
+    try {
+      const context = getRequestContext(request);
+      const params = z.object({ chatId: z.string().uuid().or(z.string().min(1)) }).parse(request.params);
+
+      const chat = await getChatForUser(params.chatId, context.userId);
+      if (!chat) return reply.status(404).send({ ok: false, error: "chat_not_found" });
+
+      await deleteChat(params.chatId);
+      return { ok: true };
+    } catch (error) {
+      request.log.error(error);
+      return reply.status(400).send({ ok: false, error: "failed_to_delete_chat" });
+    }
+  });
+
+  app.post("/v1/chats/:chatId/members", async (request, reply) => {
+    try {
+      const context = getRequestContext(request);
+      const params = z.object({ chatId: z.string().uuid().or(z.string().min(1)) }).parse(request.params);
+      const body = z.object({ user_id: z.string().uuid() }).parse(request.body);
+
+      const chat = await getChatForUser(params.chatId, context.userId);
+      if (!chat) return reply.status(404).send({ ok: false, error: "chat_not_found" });
+
+      await addChatMember(params.chatId, body.user_id, "member");
+      return { ok: true };
+    } catch (error) {
+      request.log.error(error);
+      return reply.status(400).send({ ok: false, error: "failed_to_add_member" });
+    }
+  });
+
+  app.delete("/v1/chats/:chatId/members/:userId", async (request, reply) => {
+    try {
+      const context = getRequestContext(request);
+      const params = z.object({ 
+        chatId: z.string().uuid().or(z.string().min(1)),
+        userId: z.string().uuid()
+      }).parse(request.params);
+
+      const chat = await getChatForUser(params.chatId, context.userId);
+      if (!chat) return reply.status(404).send({ ok: false, error: "chat_not_found" });
+
+      await removeChatMember(params.chatId, params.userId);
+      return { ok: true };
+    } catch (error) {
+      request.log.error(error);
+      return reply.status(400).send({ ok: false, error: "failed_to_remove_member" });
+    }
+  });
+
+  app.post("/v1/chats/:chatId/agents", async (request, reply) => {
+    try {
+      const context = getRequestContext(request);
+      const params = z.object({ chatId: z.string().uuid().or(z.string().min(1)) }).parse(request.params);
+      const body = z.object({ agent_id: z.string().min(1) }).parse(request.body);
+
+      const chat = await getChatForUser(params.chatId, context.userId);
+      if (!chat) return reply.status(404).send({ ok: false, error: "chat_not_found" });
+
+      await addChatAgent(params.chatId, body.agent_id);
+      return { ok: true };
+    } catch (error) {
+      request.log.error(error);
+      return reply.status(400).send({ ok: false, error: "failed_to_add_agent" });
+    }
+  });
+
+  app.delete("/v1/chats/:chatId/agents/:agentId", async (request, reply) => {
+    try {
+      const context = getRequestContext(request);
+      const params = z.object({ 
+        chatId: z.string().uuid().or(z.string().min(1)),
+        agentId: z.string().min(1)
+      }).parse(request.params);
+
+      const chat = await getChatForUser(params.chatId, context.userId);
+      if (!chat) return reply.status(404).send({ ok: false, error: "chat_not_found" });
+
+      await removeChatAgent(params.chatId, params.agentId);
+      return { ok: true };
+    } catch (error) {
+      request.log.error(error);
+      return reply.status(400).send({ ok: false, error: "failed_to_remove_agent" });
+    }
   });
 }

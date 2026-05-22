@@ -13,6 +13,7 @@ type CreateChatInput =
       orgSlug?: string;
       title: string;
       memberIds: string[];
+      agentIds?: string[];
     };
 
 export async function listChatsForUser(userId: string) {
@@ -116,7 +117,8 @@ export async function createChat(input: CreateChatInput) {
       type: "group",
       title: input.title,
       created_by: input.createdBy,
-      org_slug: input.orgSlug ?? "default"
+      org_slug: input.orgSlug ?? "default",
+      agent_id: input.agentIds && input.agentIds.length > 0 ? input.agentIds.join(",") : null
     })
     .select("*")
     .single();
@@ -235,5 +237,89 @@ async function updateChatLastMessage(chatId: string, content: string) {
   if (result.error) {
     throw result.error;
   }
+}
+
+// ================= PERFIS =================
+
+export async function getProfile(userId: string) {
+  const { data, error } = await supabaseAdmin
+    .from("profiles")
+    .select("*")
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function updateProfile(userId: string, updates: { display_name?: string; avatar_url?: string; phone?: string }) {
+  const { data, error } = await supabaseAdmin
+    .from("profiles")
+    .update(updates)
+    .eq("id", userId)
+    .select("*")
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+// ================= GRUPOS =================
+
+export async function updateChatTitle(chatId: string, title: string) {
+  const { data, error } = await supabaseAdmin
+    .from("chats")
+    .update({ title })
+    .eq("id", chatId)
+    .select("*")
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteChat(chatId: string) {
+  const { error } = await supabaseAdmin
+    .from("chats")
+    .delete()
+    .eq("id", chatId);
+
+  if (error) throw error;
+}
+
+export async function addChatMember(chatId: string, userId: string, role: "owner" | "admin" | "member" = "member") {
+  return ensureMembership(chatId, userId, role);
+}
+
+export async function removeChatMember(chatId: string, userId: string) {
+  const { error } = await supabaseAdmin
+    .from("chat_members")
+    .delete()
+    .eq("chat_id", chatId)
+    .eq("user_id", userId);
+
+  if (error) throw error;
+}
+
+export async function addChatAgent(chatId: string, agentId: string) {
+  const { data: chat } = await supabaseAdmin.from("chats").select("agent_id").eq("id", chatId).single();
+  if (!chat) return;
+
+  const currentAgents = chat.agent_id ? chat.agent_id.split(",").map((s: string) => s.trim()) : [];
+  if (!currentAgents.includes(agentId)) {
+    currentAgents.push(agentId);
+  }
+
+  await supabaseAdmin.from("chats").update({ agent_id: currentAgents.join(",") }).eq("id", chatId);
+}
+
+export async function removeChatAgent(chatId: string, agentId: string) {
+  const { data: chat } = await supabaseAdmin.from("chats").select("agent_id").eq("id", chatId).single();
+  if (!chat) return;
+
+  const currentAgents = chat.agent_id ? chat.agent_id.split(",").map((s: string) => s.trim()) : [];
+  const newAgents = currentAgents.filter((a: string) => a !== agentId);
+
+  await supabaseAdmin.from("chats").update({ agent_id: newAgents.join(",") }).eq("id", chatId);
 }
 
