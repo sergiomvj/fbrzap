@@ -6,9 +6,12 @@
     "apps/*"
   ],
   "scripts": {
+    "dev": "concurrently \"npm run dev:api\" \"npm run dev:mobile\" --names \"API,MOBILE\" --prefix-colors \"blue,green\"",
     "dev:mobile": "npm --workspace apps/mobile run dev",
     "dev:api": "npm --workspace apps/api run dev",
     "typecheck": "npm --workspace apps/mobile run typecheck && npm --workspace apps/api run typecheck"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
   }
 }
-
