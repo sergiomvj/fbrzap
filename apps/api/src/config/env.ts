@@ -1,5 +1,10 @@
-import "dotenv/config";
+import { config } from "dotenv";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { z } from "zod";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+config({ path: path.resolve(__dirname, "../../../../.env") });
 
 const envSchema = z.object({
   APP_ENV: z.string().default("local"),
