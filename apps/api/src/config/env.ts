@@ -5,9 +5,7 @@ import { z } from "zod";
 
 // Determina a raiz do projeto FBRzap (onde fica o .env original) subindo duas pastas do CWD do npm
 const rootEnvPath = path.resolve(process.cwd(), "../../.env");
-console.log("CARREGANDO DOTENV DE:", rootEnvPath);
-const configResult = config({ path: rootEnvPath });
-console.log("RESULTADO DOTENV:", configResult);
+config({ path: rootEnvPath });
 
 const envSchema = z.object({
   APP_ENV: z.string().default("local"),
