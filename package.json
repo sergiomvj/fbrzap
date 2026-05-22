@@ -1,0 +1,14 @@
+{
+  "name": "fbrzap",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev:mobile": "npm --workspace apps/mobile run dev",
+    "dev:api": "npm --workspace apps/api run dev",
+    "typecheck": "npm --workspace apps/mobile run typecheck && npm --workspace apps/api run typecheck"
+  }
+}
+

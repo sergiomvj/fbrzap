@@ -1,0 +1,16 @@
+{
+  "expo": {
+    "name": "FBRzap",
+    "slug": "fbrzap",
+    "scheme": "fbrzap",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "plugins": [
+      "expo-router"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
+
