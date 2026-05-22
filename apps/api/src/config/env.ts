@@ -3,8 +3,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { z } from "zod";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-config({ path: path.resolve(__dirname, "../../../../.env") });
+// Determina a raiz do projeto FBRzap (onde fica o .env original) subindo duas pastas do CWD do npm
+const rootEnvPath = path.resolve(process.cwd(), "../../.env");
+config({ path: rootEnvPath });
 
 const envSchema = z.object({
   APP_ENV: z.string().default("local"),
