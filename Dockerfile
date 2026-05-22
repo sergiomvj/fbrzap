@@ -19,8 +19,8 @@ COPY . .
 # Set environment variables for production
 ENV NODE_ENV=production
 
-# The Fastify API runs on port 3333
-EXPOSE 3333
+# The Fastify API runs on port 3000 by default (Easypanel compatibility)
+EXPOSE 3000
 
 # Start the API using the newly created start script
 CMD ["npm", "--workspace", "apps/api", "run", "start"]
