@@ -2,7 +2,6 @@ import { Stack, useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { ScrollView, Text, TextInput, View, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, Alert } from "react-native";
 import { theme } from "../../src/theme/tokens";
-import { randomUUID } from "expo-crypto"; // Or generate random string if expo-crypto isn't available
 
 type Message = {
   id: string;

@@ -125,7 +125,7 @@ export async function chatRoutes(app: FastifyInstance): Promise<void> {
           .slice(-10)
           .filter(m => m.direction === "inbound_user" || m.direction === "outbound_agent")
           .map(m => ({
-            role: m.direction === "inbound_user" ? "user" : "assistant",
+            role: (m.direction === "inbound_user" ? "user" : "assistant") as "user" | "assistant",
             content: m.content
           }));
 
@@ -146,8 +146,8 @@ export async function chatRoutes(app: FastifyInstance): Promise<void> {
           typeof openClawReply === "object" &&
           openClawReply !== null &&
           "reply" in openClawReply &&
-          typeof openClawReply.reply === "string"
-            ? openClawReply.reply
+          typeof (openClawReply as any).reply === "string"
+            ? (openClawReply as any).reply
             : "Agente respondeu sem payload textual padrao.";
 
         agentReply = await createAgentMessage({
@@ -155,7 +155,7 @@ export async function chatRoutes(app: FastifyInstance): Promise<void> {
           agentId: chat.agent_id,
           content: replyText,
           requestId,
-          metadata: typeof openClawReply === "object" && openClawReply !== null ? openClawReply : {}
+          metadata: (typeof openClawReply === "object" && openClawReply !== null ? openClawReply : {}) as Record<string, unknown>
         });
       }
 
