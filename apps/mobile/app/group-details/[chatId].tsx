@@ -7,7 +7,7 @@ import { Ionicons } from "@expo/vector-icons";
 type GroupDetails = {
   id: string;
   title: string;
-  member_ids?: string[]; // Simplificando por enquanto
+  agent_id?: string;
 };
 
 export default function GroupDetailsScreen(): JSX.Element {
@@ -17,7 +17,6 @@ export default function GroupDetailsScreen(): JSX.Element {
   const [group, setGroup] = useState<GroupDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [newTitle, setNewTitle] = useState("");
-  const [newMemberId, setNewMemberId] = useState("");
   const [availableAgents, setAvailableAgents] = useState<any[]>([]);
 
   const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://127.0.0.1:3333";
@@ -83,6 +82,26 @@ export default function GroupDetailsScreen(): JSX.Element {
     }
   }
 
+  async function handleRemoveAgent(agentId: string) {
+    try {
+      const response = await fetch(`${API_URL}/v1/chats/${chatId}/agents/${agentId}`, {
+        method: "DELETE",
+        headers: {
+          "x-user-id": USER_ID
+        }
+      });
+      const data = await response.json();
+      if (data.ok) {
+        Alert.alert("Sucesso", "Agente removido do grupo.");
+        fetchGroupDetails();
+      } else {
+        Alert.alert("Erro", "Falha ao remover agente.");
+      }
+    } catch (error) {
+      Alert.alert("Erro", "Erro de conexão.");
+    }
+  }
+
   async function handleUpdateTitle() {
     if (!newTitle.trim()) return;
     try {
@@ -106,30 +125,6 @@ export default function GroupDetailsScreen(): JSX.Element {
     }
   }
 
-  async function handleAddMember() {
-    if (!newMemberId.trim()) return;
-    try {
-      const response = await fetch(`${API_URL}/v1/chats/${chatId}/members`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-user-id": USER_ID
-        },
-        body: JSON.stringify({ user_id: newMemberId })
-      });
-      const data = await response.json();
-      if (data.ok) {
-        Alert.alert("Sucesso", "Membro adicionado (fbrchat_id).");
-        setNewMemberId("");
-        fetchGroupDetails();
-      } else {
-        Alert.alert("Erro", "Falha ao adicionar membro.");
-      }
-    } catch (error) {
-      Alert.alert("Erro", "Erro de conexão.");
-    }
-  }
-
   async function handleDeleteGroup() {
     Alert.alert(
       "Excluir Grupo",
@@ -147,7 +142,8 @@ export default function GroupDetailsScreen(): JSX.Element {
               });
               const data = await response.json();
               if (data.ok) {
-                router.replace("/(tabs)/groups");
+                Alert.alert("Excluído", "Grupo apagado com sucesso.");
+                router.replace("/groups");
               } else {
                 Alert.alert("Erro", "Falha ao excluir grupo.");
               }
@@ -163,6 +159,10 @@ export default function GroupDetailsScreen(): JSX.Element {
   if (loading) {
     return <ActivityIndicator size="large" color={theme.colors.primary} style={{ marginTop: 60 }} />;
   }
+
+  const currentAgentIds = group?.agent_id ? group.agent_id.split(",").map(a => a.trim()).filter(Boolean) : [];
+  const notInGroupAgents = availableAgents.filter(a => !currentAgentIds.includes(a.id));
+  const inGroupAgents = availableAgents.filter(a => currentAgentIds.includes(a.id));
 
   return (
     <>
@@ -184,10 +184,39 @@ export default function GroupDetailsScreen(): JSX.Element {
         </View>
 
         <View style={{ backgroundColor: theme.colors.surface, padding: 16, borderRadius: 16, borderWidth: 1, borderColor: theme.colors.border }}>
-          <Text style={theme.text.kicker}>ADICIONAR CONTATO (AGENTE)</Text>
-          <Text style={[theme.text.bodyMuted, { marginBottom: 12 }]}>Selecione um agente da agenda para adicionar ao grupo.</Text>
+          <Text style={theme.text.kicker}>AGENTES NO GRUPO</Text>
+          <View style={{ gap: 10, marginTop: 12 }}>
+            {inGroupAgents.map(agent => (
+              <View 
+                key={agent.id}
+                style={{ 
+                  flexDirection: "row", 
+                  alignItems: "center", 
+                  justifyContent: "space-between",
+                  padding: 12,
+                  backgroundColor: theme.colors.background,
+                  borderRadius: 12,
+                  borderWidth: 1,
+                  borderColor: theme.colors.primary
+                }}
+              >
+                <Text style={{ color: theme.colors.dark, fontWeight: "500" }}>{agent.name}</Text>
+                <TouchableOpacity onPress={() => handleRemoveAgent(agent.id)} style={{ padding: 6, backgroundColor: "#fee2e2", borderRadius: 8 }}>
+                  <Ionicons name="trash" size={18} color="#ef4444" />
+                </TouchableOpacity>
+              </View>
+            ))}
+            {inGroupAgents.length === 0 && (
+              <Text style={theme.text.bodyMuted}>Nenhum agente participando deste grupo no momento.</Text>
+            )}
+          </View>
+        </View>
+
+        <View style={{ backgroundColor: theme.colors.surface, padding: 16, borderRadius: 16, borderWidth: 1, borderColor: theme.colors.border }}>
+          <Text style={theme.text.kicker}>ADICIONAR NOVO AGENTE</Text>
+          <Text style={[theme.text.bodyMuted, { marginBottom: 12 }]}>Selecione um agente para convidar.</Text>
           <View style={{ gap: 10 }}>
-            {availableAgents.map(agent => (
+            {notInGroupAgents.map(agent => (
               <TouchableOpacity 
                 key={agent.id}
                 onPress={() => handleAddAgent(agent.id)}
@@ -206,8 +235,8 @@ export default function GroupDetailsScreen(): JSX.Element {
                 <Ionicons name="person-add" size={20} color={theme.colors.primary} />
               </TouchableOpacity>
             ))}
-            {availableAgents.length === 0 && (
-              <Text style={theme.text.bodyMuted}>Nenhum agente disponível ou carregando...</Text>
+            {notInGroupAgents.length === 0 && (
+              <Text style={theme.text.bodyMuted}>Todos os agentes disponíveis já estão no grupo.</Text>
             )}
           </View>
         </View>
