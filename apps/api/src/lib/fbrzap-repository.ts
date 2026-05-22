@@ -156,6 +156,7 @@ export async function createUserMessage(input: {
   content: string;
   clientMessageId: string;
   mentions: string[];
+  attachments?: string[];
 }) {
   const inserted = await supabaseAdmin
     .from("messages")
@@ -165,7 +166,8 @@ export async function createUserMessage(input: {
       sender_user_id: input.userId,
       content: input.content,
       client_message_id: input.clientMessageId,
-      mentions: input.mentions
+      mentions: input.mentions,
+      attachments: input.attachments ?? []
     })
     .select("*")
     .single();

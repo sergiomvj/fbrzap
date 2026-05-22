@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ScrollView, Text, View, ActivityIndicator, TouchableOpacity, Alert } from "react-native";
+import { ScrollView, Text, View, ActivityIndicator, TouchableOpacity, Alert, Image } from "react-native";
 import { theme } from "../../src/theme/tokens";
 import { useRouter } from "expo-router";
 
@@ -8,6 +8,7 @@ type Agent = {
   name: string;
   role: string;
   description?: string;
+  avatar_url?: string;
 };
 
 export default function AgentsScreen(): JSX.Element {
@@ -40,7 +41,7 @@ export default function AgentsScreen(): JSX.Element {
     fetchAgents();
   }, []);
 
-  async function handleStartChat(agentId: string) {
+  async function handleStartChat(agent: Agent) {
     try {
       const apiUrl = process.env.EXPO_PUBLIC_API_URL || "http://127.0.0.1:3333";
       
@@ -54,7 +55,7 @@ export default function AgentsScreen(): JSX.Element {
         },
         body: JSON.stringify({
           type: "dm_agent",
-          agent_id: agentId
+          agent_id: agent.id
         })
       });
 
@@ -62,7 +63,10 @@ export default function AgentsScreen(): JSX.Element {
 
       if (data.ok && data.chat && data.chat.id) {
         // Redireciona para a tela do chat
-        router.push(`/chat/${data.chat.id}`);
+        router.push({
+          pathname: `/chat/${data.chat.id}`,
+          params: { agentName: agent.name, agentAvatar: agent.avatar_url || "" }
+        });
       } else {
         Alert.alert("Erro", "Não foi possível iniciar o chat.");
         console.error("Create chat error:", data);
@@ -86,19 +90,35 @@ export default function AgentsScreen(): JSX.Element {
         agents.map((agent) => (
           <TouchableOpacity
             key={agent.id}
-            onPress={() => handleStartChat(agent.id)}
+            onPress={() => handleStartChat(agent)}
             activeOpacity={0.7}
             style={{
+              flexDirection: "row",
+              alignItems: "center",
               backgroundColor: theme.colors.surface,
               borderRadius: 22,
               padding: 18,
               borderWidth: 1,
-              borderColor: theme.colors.border
+              borderColor: theme.colors.border,
+              gap: 16
             }}
           >
-            <Text style={theme.text.kicker}>{agent.id}</Text>
-            <Text style={theme.text.cardTitle}>{agent.name}</Text>
-            <Text style={theme.text.bodyMuted}>{agent.role || agent.description || "Agente de IA"}</Text>
+            {agent.avatar_url ? (
+              <View style={{ width: 50, height: 50, borderRadius: 25, overflow: "hidden", backgroundColor: theme.colors.border }}>
+                <Image source={{ uri: agent.avatar_url }} style={{ width: "100%", height: "100%" }} />
+              </View>
+            ) : (
+              <View style={{ width: 50, height: 50, borderRadius: 25, backgroundColor: theme.colors.primary, alignItems: "center", justifyContent: "center" }}>
+                <Text style={{ color: "#fff", fontSize: 20, fontWeight: "bold" }}>
+                  {agent.name.charAt(0).toUpperCase()}
+                </Text>
+              </View>
+            )}
+            <View style={{ flex: 1 }}>
+              <Text style={theme.text.kicker}>{agent.id}</Text>
+              <Text style={theme.text.cardTitle}>{agent.name}</Text>
+              <Text style={theme.text.bodyMuted}>{agent.role || agent.description || "Agente de IA"}</Text>
+            </View>
           </TouchableOpacity>
         ))
       )}

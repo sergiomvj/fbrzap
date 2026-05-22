@@ -15,7 +15,8 @@ import { sendAgentMessage } from "../lib/openclaw.js";
 const chatMessageSchema = z.object({
   content: z.string().min(1),
   client_message_id: z.string().uuid(),
-  mentions: z.array(z.string()).default([])
+  mentions: z.array(z.string()).default([]),
+  attachments: z.array(z.string().url()).optional()
 });
 
 export async function chatRoutes(app: FastifyInstance): Promise<void> {
@@ -111,7 +112,8 @@ export async function chatRoutes(app: FastifyInstance): Promise<void> {
         userId: context.userId,
         content: body.content,
         clientMessageId: body.client_message_id,
-        mentions: body.mentions
+        mentions: body.mentions,
+        attachments: body.attachments
       });
 
       let agentReply: unknown = null;

@@ -46,6 +46,13 @@ export default function TabsLayout(): JSX.Element {
           tabBarIcon: ({ color, size }) => <Ionicons name="person-outline" color={color} size={size} />
         }}
       />
+      <Tabs.Screen
+        name="chat/[chatId]"
+        options={{
+          href: null,
+          headerShown: false
+        }}
+      />
     </Tabs>
   );
 }
