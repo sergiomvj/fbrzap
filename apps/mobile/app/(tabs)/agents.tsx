@@ -64,8 +64,8 @@ export default function AgentsScreen(): JSX.Element {
       if (data.ok && data.chat && data.chat.id) {
         // Redireciona para a tela do chat
         router.push({
-          pathname: `/chat/${data.chat.id}`,
-          params: { agentName: agent.name, agentAvatar: agent.avatar_url || "" }
+          pathname: "/chat/[chatId]",
+          params: { chatId: data.chat.id, agentName: agent.name, agentAvatar: agent.avatar_url || "" }
         });
       } else {
         Alert.alert("Erro", "Não foi possível iniciar o chat.");
