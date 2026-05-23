@@ -15,9 +15,11 @@ COPY . .
 # Expõe as variáveis necessárias para o Expo Web embutir no frontend no momento do build
 ARG EXPO_PUBLIC_SUPABASE_URL
 ARG EXPO_PUBLIC_SUPABASE_ANON_KEY
+ARG EXPO_PUBLIC_API_URL
 
 ENV EXPO_PUBLIC_SUPABASE_URL=$EXPO_PUBLIC_SUPABASE_URL
 ENV EXPO_PUBLIC_SUPABASE_ANON_KEY=$EXPO_PUBLIC_SUPABASE_ANON_KEY
+ENV EXPO_PUBLIC_API_URL=$EXPO_PUBLIC_API_URL
 
 # Build do frontend web
 RUN npm --workspace apps/mobile run build:web
