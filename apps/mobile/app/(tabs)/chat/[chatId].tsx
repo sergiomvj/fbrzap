@@ -129,12 +129,11 @@ export default function ChatScreen(): JSX.Element {
       Alert.alert("Upload em andamento", "Simulando upload para Cloudflare R2...");
       
       try {
+        const imgResponse = await fetch(asset.uri);
+        const blob = await imgResponse.blob();
+
         const formData = new FormData();
-        formData.append("file", {
-          uri: asset.uri,
-          name: asset.fileName || "image.jpg",
-          type: asset.mimeType || "image/jpeg"
-        } as any);
+        formData.append("file", blob, asset.fileName || "image.jpg");
 
         const response = await fetch(`${API_URL}/v1/uploads`, {
           method: "POST",

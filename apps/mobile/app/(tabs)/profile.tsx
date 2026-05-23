@@ -95,12 +95,11 @@ export default function ProfileScreen(): JSX.Element {
       Alert.alert("Upload", "Enviando avatar...");
       
       try {
+        const imgResponse = await fetch(asset.uri);
+        const blob = await imgResponse.blob();
+
         const formData = new FormData();
-        formData.append("file", {
-          uri: asset.uri,
-          name: asset.fileName || "avatar.jpg",
-          type: asset.mimeType || "image/jpeg"
-        } as any);
+        formData.append("file", blob, asset.fileName || "avatar.jpg");
 
         const uploadRes = await fetch(`${API_URL}/v1/uploads`, {
           method: "POST",
