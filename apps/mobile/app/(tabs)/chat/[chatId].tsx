@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { ScrollView, Text, TextInput, View, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, Alert, Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
+import { Audio } from "expo-av";
 import { theme } from "../../../src/theme/tokens";
 import { useAuth } from "../../../src/contexts/AuthContext";
 
@@ -12,6 +13,7 @@ type Message = {
   direction: "inbound_user" | "outbound_agent" | "system";
   status?: string;
   created_at: string;
+  attachments?: string[];
 };
 
 // Generates a simple UUID-like string for client_message_id
@@ -30,6 +32,7 @@ export default function ChatScreen(): JSX.Element {
   const [loading, setLoading] = useState(true);
   const [isThinking, setIsThinking] = useState(false);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
+  const [recording, setRecording] = useState<Audio.Recording | null>(null);
   const scrollViewRef = useRef<ScrollView>(null);
   const { session } = useAuth();
 
@@ -151,6 +154,7 @@ export default function ChatScreen(): JSX.Element {
              direction: "inbound_user",
              status: "processing",
              created_at: new Date().toISOString(),
+             attachments: [uploadData.url]
            }]);
            setIsThinking(true);
 
@@ -188,9 +192,88 @@ export default function ChatScreen(): JSX.Element {
     }
   }
 
-  function handleAttachAudio() {
+  async function handleAttachAudio() {
     setShowAttachMenu(false);
-    Alert.alert("Gravar Áudio", "Interface de gravação de áudio em breve.");
+    try {
+      const permission = await Audio.requestPermissionsAsync();
+      if (permission.status !== 'granted') {
+        Alert.alert("Permissão negada", "Precisamos de acesso ao microfone.");
+        return;
+      }
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+      });
+      const { recording } = await Audio.Recording.createAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
+      setRecording(recording);
+    } catch (err) {
+      console.error("Falha ao gravar", err);
+      Alert.alert("Erro", "Falha ao iniciar gravação de áudio.");
+    }
+  }
+
+  async function stopRecording() {
+    if (!recording) return;
+    setRecording(null);
+    await recording.stopAndUnloadAsync();
+    await Audio.setAudioModeAsync({ allowsRecordingIOS: false });
+    const uri = recording.getURI();
+    
+    if (uri) {
+      Alert.alert("Upload", "Enviando áudio...");
+      try {
+        const audioResponse = await fetch(uri);
+        const blob = await audioResponse.blob();
+        const formData = new FormData();
+        formData.append("file", blob, "audio.m4a");
+
+        const response = await fetch(`${API_URL}/v1/uploads`, {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${session?.access_token}` },
+          body: formData,
+        });
+        const uploadData = await response.json();
+        
+        if (uploadData.ok && uploadData.url) {
+           const clientIdAttach = generateClientId();
+           setMessages((prev) => [...prev, {
+             id: clientIdAttach,
+             content: "🎵 Áudio enviado",
+             direction: "inbound_user",
+             status: "processing",
+             created_at: new Date().toISOString(),
+             attachments: [uploadData.url]
+           }]);
+           setIsThinking(true);
+
+           const msgResponse = await fetch(`${API_URL}/v1/chats/${chatId}/messages`, {
+             method: "POST",
+             headers: {
+               "Content-Type": "application/json",
+               "Authorization": `Bearer ${session?.access_token}`
+             },
+             body: JSON.stringify({
+               content: "Segue áudio em anexo",
+               client_message_id: clientIdAttach,
+               mentions: [],
+               attachments: [uploadData.url]
+             })
+           });
+
+           const msgData = await msgResponse.json();
+           if (msgData.ok && msgData.agent_reply) {
+             setMessages((prev) => 
+               prev.map(msg => msg.id === clientIdAttach ? { ...msg, status: "sent" } : msg)
+               .concat(msgData.agent_reply)
+             );
+           }
+        }
+      } catch (err) {
+        Alert.alert("Erro", "Falha ao enviar áudio.");
+      } finally {
+        setIsThinking(false);
+      }
+    }
   }
 
   return (
@@ -243,6 +326,13 @@ export default function ChatScreen(): JSX.Element {
                   opacity: msg.status === "processing" ? 0.6 : 1
                 }}
               >
+                {msg.attachments && msg.attachments.length > 0 && msg.attachments.map((url, i) => {
+                  if (url.match(/\.(jpeg|jpg|gif|png)$/) || url.includes("image")) {
+                    return <Image key={i} source={{ uri: url }} style={{ width: 220, height: 220, borderRadius: 12, marginBottom: 8, backgroundColor: theme.colors.border }} resizeMode="cover" />;
+                  } else {
+                    return <Text key={i} style={[theme.text.body, { color: theme.colors.primary, marginBottom: 4, fontStyle: "italic" }]}>🎵 Áudio anexado</Text>;
+                  }
+                })}
                 <Text style={theme.text.body}>{msg.content}</Text>
               </View>
             ))}
@@ -266,41 +356,53 @@ export default function ChatScreen(): JSX.Element {
           </View>
         )}
 
-        <View style={{ padding: 16, borderTopWidth: 1, borderTopColor: theme.colors.border, backgroundColor: theme.colors.surface, flexDirection: "row", alignItems: "center" }}>
-          <TouchableOpacity onPress={() => setShowAttachMenu(!showAttachMenu)} style={{ padding: 10, marginRight: 4 }}>
-            <Ionicons name="attach" size={28} color={theme.colors.muted} />
-          </TouchableOpacity>
-          <TextInput
-            value={inputText}
-            onChangeText={setInputText}
-            placeholder="Digite sua mensagem"
-            placeholderTextColor={theme.colors.muted}
-            onSubmitEditing={handleSend}
-            editable={!isThinking}
-            style={{
-              flex: 1,
-              backgroundColor: theme.colors.background,
-              borderRadius: 18,
-              paddingHorizontal: 16,
-              paddingVertical: 14,
-              color: theme.colors.dark,
-              fontSize: 16
-            }}
-          />
-          <TouchableOpacity 
-            onPress={handleSend}
-            disabled={!inputText.trim() || isThinking}
-            style={{
-              marginLeft: 12,
-              backgroundColor: inputText.trim() && !isThinking ? theme.colors.primary : theme.colors.muted,
-              paddingHorizontal: 18,
-              paddingVertical: 14,
-              borderRadius: 18
-            }}
-          >
-            <Ionicons name="send" size={20} color="#fff" />
-          </TouchableOpacity>
-        </View>
+        {recording ? (
+          <View style={{ padding: 16, borderTopWidth: 1, borderTopColor: theme.colors.border, backgroundColor: theme.colors.surface, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+              <View style={{ width: 14, height: 14, borderRadius: 7, backgroundColor: "#ef4444" }} />
+              <Text style={{ color: "#ef4444", fontWeight: "bold", fontSize: 16 }}>Gravando áudio...</Text>
+            </View>
+            <TouchableOpacity onPress={stopRecording} style={{ backgroundColor: theme.colors.primary, paddingHorizontal: 24, paddingVertical: 14, borderRadius: 18 }}>
+              <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 16 }}>Enviar</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={{ padding: 16, borderTopWidth: 1, borderTopColor: theme.colors.border, backgroundColor: theme.colors.surface, flexDirection: "row", alignItems: "center" }}>
+            <TouchableOpacity onPress={() => setShowAttachMenu(!showAttachMenu)} style={{ padding: 10, marginRight: 4 }}>
+              <Ionicons name="attach" size={28} color={theme.colors.muted} />
+            </TouchableOpacity>
+            <TextInput
+              value={inputText}
+              onChangeText={setInputText}
+              placeholder="Digite sua mensagem"
+              placeholderTextColor={theme.colors.muted}
+              onSubmitEditing={handleSend}
+              editable={!isThinking}
+              style={{
+                flex: 1,
+                backgroundColor: theme.colors.background,
+                borderRadius: 18,
+                paddingHorizontal: 16,
+                paddingVertical: 14,
+                color: theme.colors.dark,
+                fontSize: 16
+              }}
+            />
+            <TouchableOpacity 
+              onPress={handleSend}
+              disabled={!inputText.trim() || isThinking}
+              style={{
+                marginLeft: 12,
+                backgroundColor: inputText.trim() && !isThinking ? theme.colors.primary : theme.colors.muted,
+                paddingHorizontal: 18,
+                paddingVertical: 14,
+                borderRadius: 18
+              }}
+            >
+              <Ionicons name="send" size={20} color="#fff" />
+            </TouchableOpacity>
+          </View>
+        )}
       </KeyboardAvoidingView>
     </>
   );
