@@ -6,7 +6,7 @@ import { getRequestContext } from "../lib/request-context.js";
 export async function profileRoutes(app: FastifyInstance): Promise<void> {
   app.get("/v1/profiles/me", async (request, reply) => {
     try {
-      const context = getRequestContext(request);
+      const context = await getRequestContext(request);
       const profile = await getProfile(context.userId);
 
       if (!profile) {
@@ -25,7 +25,7 @@ export async function profileRoutes(app: FastifyInstance): Promise<void> {
 
   app.patch("/v1/profiles/me", async (request, reply) => {
     try {
-      const context = getRequestContext(request);
+      const context = await getRequestContext(request);
       
       const bodyParams = z.object({
         display_name: z.string().min(1).optional(),

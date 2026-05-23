@@ -4,6 +4,7 @@ import { ScrollView, Text, TextInput, View, TouchableOpacity, ActivityIndicator,
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { theme } from "../../../src/theme/tokens";
+import { useAuth } from "../../../src/contexts/AuthContext";
 
 type Message = {
   id: string;
@@ -30,15 +31,16 @@ export default function ChatScreen(): JSX.Element {
   const [isThinking, setIsThinking] = useState(false);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
+  const { session } = useAuth();
 
   const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://127.0.0.1:3333";
-  const USER_ID = "595f98a5-b525-4a52-870b-14f036e6c71b"; // UUID fixo para teste local
 
   useEffect(() => {
     async function fetchMessages() {
+      if (!session) return;
       try {
         const response = await fetch(`${API_URL}/v1/chats/${chatId}/messages`, {
-          headers: { "x-user-id": USER_ID }
+          headers: { "Authorization": `Bearer ${session.access_token}` }
         });
         const data = await response.json();
         
@@ -74,12 +76,13 @@ export default function ChatScreen(): JSX.Element {
     setInputText("");
     setIsThinking(true);
 
+    if (!session) return;
     try {
       const response = await fetch(`${API_URL}/v1/chats/${chatId}/messages`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-user-id": USER_ID
+          "Authorization": `Bearer ${session.access_token}`
         },
         body: JSON.stringify({
           content: text,
@@ -135,6 +138,7 @@ export default function ChatScreen(): JSX.Element {
 
         const response = await fetch(`${API_URL}/v1/uploads`, {
           method: "POST",
+          headers: { "Authorization": `Bearer ${session?.access_token}` },
           body: formData,
         });
 
@@ -155,7 +159,7 @@ export default function ChatScreen(): JSX.Element {
              method: "POST",
              headers: {
                "Content-Type": "application/json",
-               "x-user-id": USER_ID
+               "Authorization": `Bearer ${session?.access_token}`
              },
              body: JSON.stringify({
                content: "Segue imagem em anexo",

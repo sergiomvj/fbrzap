@@ -3,6 +3,9 @@ import { useEffect, useState } from "react";
 import { ScrollView, Text, View, ActivityIndicator, TouchableOpacity, Alert, TextInput } from "react-native";
 import { theme } from "../../src/theme/tokens";
 import { Ionicons } from "@expo/vector-icons";
+import { useAuth } from "../../src/contexts/AuthContext";
+import { useFocusEffect } from "expo-router";
+import { useCallback } from "react";
 
 type GroupDetails = {
   id: string;
@@ -19,13 +22,16 @@ export default function GroupDetailsScreen(): JSX.Element {
   const [newTitle, setNewTitle] = useState("");
   const [availableAgents, setAvailableAgents] = useState<any[]>([]);
 
-  const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://127.0.0.1:3333";
-  const USER_ID = "595f98a5-b525-4a52-870b-14f036e6c71b";
+  const { session } = useAuth();
 
-  useEffect(() => {
-    fetchGroupDetails();
-    fetchAgents();
-  }, [chatId]);
+  const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://127.0.0.1:3333";
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchGroupDetails();
+      fetchAgents();
+    }, [chatId, session])
+  );
 
   async function fetchAgents() {
     try {
@@ -40,9 +46,10 @@ export default function GroupDetailsScreen(): JSX.Element {
   }
 
   async function fetchGroupDetails() {
+    if (!session) return;
     try {
       const response = await fetch(`${API_URL}/v1/chats`, {
-        headers: { "x-user-id": USER_ID }
+        headers: { "Authorization": `Bearer ${session.access_token}` }
       });
       const data = await response.json();
       
@@ -61,12 +68,13 @@ export default function GroupDetailsScreen(): JSX.Element {
   }
 
   async function handleAddAgent(agentId: string) {
+    if (!session) return;
     try {
       const response = await fetch(`${API_URL}/v1/chats/${chatId}/agents`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-user-id": USER_ID
+          "Authorization": `Bearer ${session.access_token}`
         },
         body: JSON.stringify({ agent_id: agentId })
       });
@@ -83,11 +91,12 @@ export default function GroupDetailsScreen(): JSX.Element {
   }
 
   async function handleRemoveAgent(agentId: string) {
+    if (!session) return;
     try {
       const response = await fetch(`${API_URL}/v1/chats/${chatId}/agents/${agentId}`, {
         method: "DELETE",
         headers: {
-          "x-user-id": USER_ID
+          "Authorization": `Bearer ${session.access_token}`
         }
       });
       const data = await response.json();
@@ -103,13 +112,13 @@ export default function GroupDetailsScreen(): JSX.Element {
   }
 
   async function handleUpdateTitle() {
-    if (!newTitle.trim()) return;
+    if (!newTitle.trim() || !session) return;
     try {
       const response = await fetch(`${API_URL}/v1/chats/${chatId}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
-          "x-user-id": USER_ID
+          "Authorization": `Bearer ${session.access_token}`
         },
         body: JSON.stringify({ title: newTitle })
       });
@@ -135,10 +144,11 @@ export default function GroupDetailsScreen(): JSX.Element {
           text: "Excluir",
           style: "destructive",
           onPress: async () => {
+            if (!session) return;
             try {
               const response = await fetch(`${API_URL}/v1/chats/${chatId}`, {
                 method: "DELETE",
-                headers: { "x-user-id": USER_ID }
+                headers: { "Authorization": `Bearer ${session.access_token}` }
               });
               const data = await response.json();
               if (data.ok) {

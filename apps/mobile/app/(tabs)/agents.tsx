@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { ScrollView, Text, View, ActivityIndicator, TouchableOpacity, Alert, Image } from "react-native";
 import { theme } from "../../src/theme/tokens";
 import { useRouter } from "expo-router";
+import { useAuth } from "../../src/contexts/AuthContext";
 
 type Agent = {
   id: string;
@@ -15,6 +16,7 @@ export default function AgentsScreen(): JSX.Element {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const { session } = useAuth();
 
   useEffect(() => {
     async function fetchAgents() {
@@ -46,12 +48,12 @@ export default function AgentsScreen(): JSX.Element {
       const apiUrl = process.env.EXPO_PUBLIC_API_URL || "http://127.0.0.1:3333";
       
       // Criando (ou recuperando) chat com o agente
+      if (!session) return;
       const response = await fetch(`${apiUrl}/v1/chats`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          // Temporário: Usando um UUID fixo VÁLIDO do Supabase
-          "x-user-id": "595f98a5-b525-4a52-870b-14f036e6c71b"
+          "Authorization": `Bearer ${session.access_token}`
         },
         body: JSON.stringify({
           type: "dm_agent",

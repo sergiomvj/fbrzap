@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { ScrollView, Text, View, ActivityIndicator, TouchableOpacity, Alert, TextInput } from "react-native";
 import { theme } from "../../src/theme/tokens";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { useAuth } from "../../src/contexts/AuthContext";
 
 type Chat = {
   id: string;
@@ -21,14 +22,16 @@ export default function GroupsScreen(): JSX.Element {
   const [selectedAgents, setSelectedAgents] = useState<string[]>([]);
   
   const router = useRouter();
+  const { session } = useAuth();
 
   const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://127.0.0.1:3333";
-  const USER_ID = "595f98a5-b525-4a52-870b-14f036e6c71b";
 
-  useEffect(() => {
-    fetchGroups();
-    fetchAgents();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      fetchGroups();
+      fetchAgents();
+    }, [session])
+  );
 
   async function fetchAgents() {
     try {
@@ -43,9 +46,10 @@ export default function GroupsScreen(): JSX.Element {
   }
 
   async function fetchGroups() {
+    if (!session) return;
     try {
       const response = await fetch(`${API_URL}/v1/chats`, {
-        headers: { "x-user-id": USER_ID }
+        headers: { "Authorization": `Bearer ${session.access_token}` }
       });
       const data = await response.json();
       
@@ -73,12 +77,13 @@ export default function GroupsScreen(): JSX.Element {
       return;
     }
 
+    if (!session) return;
     try {
       const response = await fetch(`${API_URL}/v1/chats`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-user-id": USER_ID
+          "Authorization": `Bearer ${session.access_token}`
         },
         body: JSON.stringify({
           type: "group",

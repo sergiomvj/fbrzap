@@ -1,7 +1,9 @@
 import { Link } from "expo-router";
 import { Pressable, ScrollView, Text, View, ActivityIndicator } from "react-native";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { theme } from "../../src/theme/tokens";
+import { useAuth } from "../../src/contexts/AuthContext";
+import { useFocusEffect } from "expo-router";
 
 type Chat = {
   id: string;
@@ -15,16 +17,19 @@ type Chat = {
 export default function ChatsScreen(): JSX.Element {
   const [chats, setChats] = useState<Chat[]>([]);
   const [loading, setLoading] = useState(true);
+  const { session } = useAuth();
 
-  useEffect(() => {
-    async function fetchChats() {
-      try {
-        const apiUrl = process.env.EXPO_PUBLIC_API_URL || "http://127.0.0.1:3333";
-        const response = await fetch(`${apiUrl}/v1/chats`, {
-          headers: {
-            "x-user-id": "595f98a5-b525-4a52-870b-14f036e6c71b"
-          }
-        });
+  useFocusEffect(
+    useCallback(() => {
+      async function fetchChats() {
+        if (!session) return;
+        try {
+          const apiUrl = process.env.EXPO_PUBLIC_API_URL || "http://127.0.0.1:3333";
+          const response = await fetch(`${apiUrl}/v1/chats`, {
+            headers: {
+              "Authorization": `Bearer ${session.access_token}`
+            }
+          });
         const data = await response.json();
         
         if (data.ok && Array.isArray(data.chats)) {
@@ -38,7 +43,8 @@ export default function ChatsScreen(): JSX.Element {
     }
 
     fetchChats();
-  }, []);
+    }, [session])
+  );
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: theme.colors.background }} contentContainerStyle={{ padding: 20, gap: 14 }}>

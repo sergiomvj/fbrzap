@@ -1,7 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { ScrollView, Text, View, ActivityIndicator, TextInput, TouchableOpacity, Alert, Image } from "react-native";
 import { theme } from "../../src/theme/tokens";
 import * as ImagePicker from "expo-image-picker";
+import { useAuth } from "../../src/contexts/AuthContext";
+import { supabase } from "../../src/lib/supabase";
+import { useFocusEffect } from "expo-router";
 
 type Profile = {
   id: string;
@@ -16,17 +19,20 @@ export default function ProfileScreen(): JSX.Element {
   const [displayName, setDisplayName] = useState("");
   const [phone, setPhone] = useState("");
 
+  const { session } = useAuth();
   const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://127.0.0.1:3333";
-  const USER_ID = "595f98a5-b525-4a52-870b-14f036e6c71b";
 
-  useEffect(() => {
-    fetchProfile();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      fetchProfile();
+    }, [session])
+  );
 
   async function fetchProfile() {
+    if (!session) return;
     try {
       const response = await fetch(`${API_URL}/v1/profiles/me`, {
-        headers: { "x-user-id": USER_ID }
+        headers: { "Authorization": `Bearer ${session.access_token}` }
       });
       const data = await response.json();
       
@@ -43,12 +49,13 @@ export default function ProfileScreen(): JSX.Element {
   }
 
   async function handleSaveProfile() {
+    if (!session) return;
     try {
       const response = await fetch(`${API_URL}/v1/profiles/me`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
-          "x-user-id": USER_ID
+          "Authorization": `Bearer ${session.access_token}`
         },
         body: JSON.stringify({
           display_name: displayName,
@@ -95,10 +102,9 @@ export default function ProfileScreen(): JSX.Element {
           type: asset.mimeType || "image/jpeg"
         } as any);
 
-        // Envia para o R2 via backend
         const uploadRes = await fetch(`${API_URL}/v1/uploads`, {
           method: "POST",
-          headers: { "x-user-id": USER_ID },
+          headers: { "Authorization": `Bearer ${session?.access_token}` },
           body: formData
         });
 
@@ -110,7 +116,7 @@ export default function ProfileScreen(): JSX.Element {
             method: "PATCH",
             headers: {
               "Content-Type": "application/json",
-              "x-user-id": USER_ID
+              "Authorization": `Bearer ${session?.access_token}`
             },
             body: JSON.stringify({ avatar_url: uploadData.url })
           });
@@ -148,7 +154,7 @@ export default function ProfileScreen(): JSX.Element {
             <Text style={{ color: "#fff", fontSize: 10 }}>Editar</Text>
           </View>
         </TouchableOpacity>
-        <Text style={[theme.text.kicker, { marginTop: 10 }]}>{USER_ID}</Text>
+        <Text style={[theme.text.kicker, { marginTop: 10 }]}>{session?.user?.email}</Text>
       </View>
 
       <View style={{ backgroundColor: theme.colors.surface, borderRadius: 22, padding: 18, borderWidth: 1, borderColor: theme.colors.border, gap: 12 }}>
@@ -179,6 +185,10 @@ export default function ProfileScreen(): JSX.Element {
           <Text style={{ color: "#fff", fontWeight: "bold" }}>Salvar Alterações</Text>
         </TouchableOpacity>
       </View>
+
+      <TouchableOpacity onPress={() => supabase?.auth.signOut()} style={{ backgroundColor: "#fee2e2", padding: 14, borderRadius: 12, alignItems: "center", marginTop: 10 }}>
+        <Text style={{ color: "#ef4444", fontWeight: "bold" }}>Sair da Conta</Text>
+      </TouchableOpacity>
 
     </ScrollView>
   );

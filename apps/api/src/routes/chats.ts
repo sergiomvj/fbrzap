@@ -28,7 +28,7 @@ const chatMessageSchema = z.object({
 export async function chatRoutes(app: FastifyInstance): Promise<void> {
   app.get("/v1/chats", async (request, reply) => {
     try {
-      const context = getRequestContext(request);
+      const context = await getRequestContext(request);
       const chats = await listChatsForUser(context.userId);
 
       return {
@@ -43,7 +43,7 @@ export async function chatRoutes(app: FastifyInstance): Promise<void> {
 
   app.post("/v1/chats", async (request, reply) => {
     try {
-      const context = getRequestContext(request);
+      const context = await getRequestContext(request);
       const body = z.discriminatedUnion("type", [
         z.object({
           type: z.literal("dm_agent"),
@@ -86,7 +86,7 @@ export async function chatRoutes(app: FastifyInstance): Promise<void> {
 
   app.get("/v1/chats/:chatId/messages", async (request, reply) => {
     try {
-      const context = getRequestContext(request);
+      const context = await getRequestContext(request);
       const params = z.object({ chatId: z.string().uuid().or(z.string().min(1)) }).parse(request.params);
       const messages = await listMessagesForChat(params.chatId, context.userId);
 
@@ -106,7 +106,7 @@ export async function chatRoutes(app: FastifyInstance): Promise<void> {
 
   app.post("/v1/chats/:chatId/messages", async (request, reply) => {
     try {
-      const context = getRequestContext(request);
+      const context = await getRequestContext(request);
       const params = z.object({ chatId: z.string().uuid().or(z.string().min(1)) }).parse(request.params);
       const body = chatMessageSchema.parse(request.body);
       const chat = await getChatForUser(params.chatId, context.userId);
@@ -226,7 +226,7 @@ export async function chatRoutes(app: FastifyInstance): Promise<void> {
 
   app.patch("/v1/chats/:chatId", async (request, reply) => {
     try {
-      const context = getRequestContext(request);
+      const context = await getRequestContext(request);
       const params = z.object({ chatId: z.string().uuid().or(z.string().min(1)) }).parse(request.params);
       const body = z.object({ title: z.string().min(1) }).parse(request.body);
 
@@ -243,7 +243,7 @@ export async function chatRoutes(app: FastifyInstance): Promise<void> {
 
   app.delete("/v1/chats/:chatId", async (request, reply) => {
     try {
-      const context = getRequestContext(request);
+      const context = await getRequestContext(request);
       const params = z.object({ chatId: z.string().uuid().or(z.string().min(1)) }).parse(request.params);
 
       const chat = await getChatForUser(params.chatId, context.userId);
@@ -259,7 +259,7 @@ export async function chatRoutes(app: FastifyInstance): Promise<void> {
 
   app.post("/v1/chats/:chatId/members", async (request, reply) => {
     try {
-      const context = getRequestContext(request);
+      const context = await getRequestContext(request);
       const params = z.object({ chatId: z.string().uuid().or(z.string().min(1)) }).parse(request.params);
       const body = z.object({ user_id: z.string().uuid() }).parse(request.body);
 
@@ -276,7 +276,7 @@ export async function chatRoutes(app: FastifyInstance): Promise<void> {
 
   app.delete("/v1/chats/:chatId/members/:userId", async (request, reply) => {
     try {
-      const context = getRequestContext(request);
+      const context = await getRequestContext(request);
       const params = z.object({ 
         chatId: z.string().uuid().or(z.string().min(1)),
         userId: z.string().uuid()
@@ -295,7 +295,7 @@ export async function chatRoutes(app: FastifyInstance): Promise<void> {
 
   app.post("/v1/chats/:chatId/agents", async (request, reply) => {
     try {
-      const context = getRequestContext(request);
+      const context = await getRequestContext(request);
       const params = z.object({ chatId: z.string().uuid().or(z.string().min(1)) }).parse(request.params);
       const body = z.object({ agent_id: z.string().min(1) }).parse(request.body);
 
@@ -312,7 +312,7 @@ export async function chatRoutes(app: FastifyInstance): Promise<void> {
 
   app.delete("/v1/chats/:chatId/agents/:agentId", async (request, reply) => {
     try {
-      const context = getRequestContext(request);
+      const context = await getRequestContext(request);
       const params = z.object({ 
         chatId: z.string().uuid().or(z.string().min(1)),
         agentId: z.string().min(1)
