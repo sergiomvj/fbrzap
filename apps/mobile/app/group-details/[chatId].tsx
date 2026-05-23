@@ -24,7 +24,7 @@ export default function GroupDetailsScreen(): JSX.Element {
 
   const { session } = useAuth();
 
-  const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://127.0.0.1:3333";
+  const API_URL = process.env.EXPO_PUBLIC_API_URL || "https://webserver1-fbrzap.ldm9ti.easypanel.host";
 
   useFocusEffect(
     useCallback(() => {

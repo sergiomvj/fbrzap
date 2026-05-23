@@ -21,7 +21,7 @@ export default function AgentsScreen(): JSX.Element {
   useEffect(() => {
     async function fetchAgents() {
       try {
-        const apiUrl = process.env.EXPO_PUBLIC_API_URL || "http://127.0.0.1:3333";
+        const apiUrl = process.env.EXPO_PUBLIC_API_URL || "https://webserver1-fbrzap.ldm9ti.easypanel.host";
         const response = await fetch(`${apiUrl}/v1/agents`);
         const data = await response.json();
         
@@ -45,7 +45,7 @@ export default function AgentsScreen(): JSX.Element {
 
   async function handleStartChat(agent: Agent) {
     try {
-      const apiUrl = process.env.EXPO_PUBLIC_API_URL || "http://127.0.0.1:3333";
+      const apiUrl = process.env.EXPO_PUBLIC_API_URL || "https://webserver1-fbrzap.ldm9ti.easypanel.host";
       
       // Criando (ou recuperando) chat com o agente
       if (!session) return;

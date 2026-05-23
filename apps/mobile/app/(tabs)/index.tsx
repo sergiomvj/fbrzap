@@ -24,7 +24,7 @@ export default function ChatsScreen(): JSX.Element {
       async function fetchChats() {
         if (!session) return;
         try {
-          const apiUrl = process.env.EXPO_PUBLIC_API_URL || "http://127.0.0.1:3333";
+          const apiUrl = process.env.EXPO_PUBLIC_API_URL || "https://webserver1-fbrzap.ldm9ti.easypanel.host";
           const response = await fetch(`${apiUrl}/v1/chats`, {
             headers: {
               "Authorization": `Bearer ${session.access_token}`
