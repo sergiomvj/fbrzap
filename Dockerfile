@@ -16,6 +16,9 @@ RUN npm install
 # Copy all source files
 COPY . .
 
+# Build the mobile app for web
+RUN npm --workspace apps/mobile run build:web
+
 # Set environment variables for production
 ENV NODE_ENV=production
 
