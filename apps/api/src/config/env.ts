@@ -1,11 +1,17 @@
 import { config } from "dotenv";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { z } from "zod";
+import fs from "node:fs";
 
-// Determina a raiz do projeto FBRzap (onde fica o .env original) subindo duas pastas do CWD do npm
-const rootEnvPath = path.resolve(process.cwd(), "../../.env");
-config({ path: rootEnvPath });
+// No container Docker o CWD é /app (raiz do monorepo).
+// Localmente com npm workspaces o CWD é apps/api.
+// Tentamos a raiz primeiro, depois dois níveis acima.
+const candidates = [
+  path.resolve(process.cwd(), ".env"),
+  path.resolve(process.cwd(), "../../.env"),
+];
+const envPath = candidates.find((p) => fs.existsSync(p));
+if (envPath) config({ path: envPath });
 
 const envSchema = z.object({
   APP_ENV: z.string().default("local"),
